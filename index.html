@@ -13,156 +13,138 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
-      flex-direction: column;
       margin: 0;
+      flex-direction: column;
     }
-
     #canvas {
       border: 1px solid #aaa;
       touch-action: none;
-      margin-bottom: 20px;
+      background-color: white;
     }
-
-    .toolbar {
-      margin-bottom: 10px;
+    #toolbar {
       display: flex;
-      justify-content: center;
-      gap: 10px;
+      justify-content: space-between;
+      width: 400px;
+      margin-top: 10px;
     }
-
-    .toolbar button {
-      padding: 5px 10px;
-      border: none;
-      background-color: #555;
-      color: white;
-      cursor: pointer;
-    }
-
-    .toolbar input[type="color"] {
-      padding: 5px;
-      cursor: pointer;
-    }
-
-    #sendBtn {
-      background-color: #4CAF50;
-      color: white;
-      padding: 10px 20px;
+    .tool-button {
+      background-color: transparent;
       border: none;
       cursor: pointer;
+      color: white;
+      font-size: 20px;
     }
-
-    #sendBtn:hover {
-      background-color: #45a049;
+    .color-picker {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 2px solid #aaa;
     }
-
+    #size-slider {
+      width: 100px;
+    }
+    #undoBtn {
+      background-color: transparent;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+    }
+    .arrow-left {
+      transform: rotate(180deg); /* Rotate to make it a left arrow */
+    }
   </style>
 </head>
 <body>
 
-  <!-- Toolbar with color and pencil size -->
-  <div class="toolbar">
-    <input type="color" id="colorPicker" value="#000000">
-    <button id="increaseSize">Increase Size</button>
-    <button id="decreaseSize">Decrease Size</button>
-    <button id="undoBtn">Undo</button>
+  <canvas id="canvas" width="600" height="400"></canvas>
+  
+  <div id="toolbar">
+    <!-- Color picker circle -->
+    <button id="colorPickerBtn" class="tool-button">
+      <div id="colorCircle" class="color-picker" style="background-color: black;"></div>
+    </button>
+
+    <!-- Slider for brush size -->
+    <input type="range" id="size-slider" min="1" max="20" value="5" step="1">
+    <span id="brush-size">5</span>
+
+    <!-- Undo Button (arrow) -->
+    <button id="undoBtn" class="tool-button">
+      <span class="arrow-left">←</span>
+    </button>
   </div>
 
-  <!-- Canvas -->
-  <canvas id="canvas" width="600" height="400"></canvas>
-
-  <!-- Submit Button -->
   <button id="sendBtn">Submit Drawing</button>
-
   <p id="message"></p>
 
   <script>
-    // Canvas Setup
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     let drawing = false;
-    let currentPath = [];
-    let allPaths = [];
-    let pencilSize = 5;
-    let currentColor = '#000000';
+    let brushSize = 5; // Default brush size
+    let brushColor = 'black'; // Default color
+    let paths = []; // Array to store paths for undo functionality
 
-    // Setup toolbar interactions
-    const colorPicker = document.getElementById('colorPicker');
-    const increaseSizeBtn = document.getElementById('increaseSize');
-    const decreaseSizeBtn = document.getElementById('decreaseSize');
-    const undoBtn = document.getElementById('undoBtn');
-
-    // Change the pencil color
-    colorPicker.addEventListener('input', (e) => {
-      currentColor = e.target.value;
-    });
-
-    // Increase pencil size
-    increaseSizeBtn.addEventListener('click', () => {
-      pencilSize += 1;
-    });
-
-    // Decrease pencil size
-    decreaseSizeBtn.addEventListener('click', () => {
-      if (pencilSize > 1) pencilSize -= 1;
-    });
-
-    // Undo last path
-    undoBtn.addEventListener('click', () => {
-      if (allPaths.length > 0) {
-        allPaths.pop();
-        redrawCanvas();
-      }
-    });
-
-    // Event listeners for drawing on canvas
-    canvas.addEventListener('pointerdown', (e) => {
+    canvas.addEventListener('pointerdown', e => {
       drawing = true;
       ctx.beginPath();
       ctx.moveTo(e.offsetX, e.offsetY);
-      currentPath = [{ x: e.offsetX, y: e.offsetY }];
+      paths.push({x: e.offsetX, y: e.offsetY, brushSize, brushColor});
     });
 
-    canvas.addEventListener('pointermove', (e) => {
+    canvas.addEventListener('pointermove', e => {
       if (!drawing) return;
       ctx.lineTo(e.offsetX, e.offsetY);
+      ctx.lineWidth = brushSize;
+      ctx.strokeStyle = brushColor;
       ctx.stroke();
-      currentPath.push({ x: e.offsetX, y: e.offsetY });
+      paths.push({x: e.offsetX, y: e.offsetY, brushSize, brushColor});
     });
 
     canvas.addEventListener('pointerup', () => {
-      if (drawing) {
-        allPaths.push(currentPath);
-        drawing = false;
+      drawing = false;
+    });
+
+    // Update brush size based on the slider
+    document.getElementById('size-slider').addEventListener('input', (e) => {
+      brushSize = e.target.value;
+      document.getElementById('brush-size').textContent = brushSize;
+    });
+
+    // Change color using the color picker
+    document.getElementById('colorPickerBtn').addEventListener('click', () => {
+      const newColor = prompt('Enter color (name or hex code):', brushColor);
+      if (newColor) {
+        brushColor = newColor;
+        document.getElementById('colorCircle').style.backgroundColor = brushColor;
       }
     });
 
-    // Redraw the entire canvas based on all paths
-    function redrawCanvas() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
-      ctx.lineWidth = pencilSize;
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = currentColor;
-
-      // Redraw all paths
-      allPaths.forEach(path => {
+    // Undo functionality (go back one step)
+    document.getElementById('undoBtn').addEventListener('click', () => {
+      if (paths.length > 0) {
+        paths.pop(); // Remove the last path
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+        // Redraw the remaining paths
         ctx.beginPath();
-        ctx.moveTo(path[0].x, path[0].y);
-        path.forEach(point => {
-          ctx.lineTo(point.x, point.y);
+        paths.forEach(path => {
+          ctx.moveTo(path.x, path.y);
+          ctx.lineTo(path.x, path.y); // Recreate the paths
+          ctx.lineWidth = path.brushSize;
+          ctx.strokeStyle = path.brushColor;
+          ctx.stroke();
         });
-        ctx.stroke();
-      });
-    }
+      }
+    });
 
     // Supabase client setup
     const { createClient } = supabase;
     const supaClient = createClient(
       'https://gysrnzysffvlpzxlcdbz.supabase.co',
-      'YOUR_SUPABASE_KEY'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5c3JuenlzZmZ2bHB6eGxjZGJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MDE1MzEsImV4cCI6MjA2MTM3NzUzMX0.H816-ePiMfGqsv4RRU1q1CwoFliRDH1PH8rppufSf7I'
     );
 
-    // Upload the drawing
     document.getElementById('sendBtn').addEventListener('click', async () => {
       canvas.toBlob(async (blob) => {
         if (!blob) {
@@ -181,7 +163,6 @@
         document.getElementById('message').textContent = 'Your drawing has been sent!';
       }, 'image/png');
     });
-
   </script>
 
 </body>
