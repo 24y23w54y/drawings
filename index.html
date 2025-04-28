@@ -290,10 +290,12 @@
     });
 
     sendBtn.addEventListener('click', async () => {
-        const dataUrl = canvas.toDataURL('image/png');
-        const { error } = await supabaseClient
-          .from('arts') // <- Nom de ta table
-          .insert([{ image_data: dataUrl }]); // <- 'image_data' doit être le nom de ta colonne
+    canvas.toBlob(async (blob) => {
+        const fileName = `art-${Date.now()}.png`;
+        const { data, error } = await supabaseClient
+            .storage
+            .from('arts') // <-- nom du bucket
+            .upload(fileName, blob, { contentType: 'image/png' });
 
         if (!error) {
             document.getElementById('toolbar').style.display = 'none';
@@ -306,7 +308,9 @@
             alert('Erreur lors de l\'envoi.');
             console.error(error);
         }
-    });
+    }, 'image/png');
+});
+
 
     drawAgainBtn.addEventListener('click', () => {
         confirmation.style.display = 'none';
