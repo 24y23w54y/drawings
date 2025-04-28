@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +9,7 @@
   <style>
     body {
       background-color: black;
+      font-family: Arial, sans-serif;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -16,63 +17,81 @@
       margin: 0;
       flex-direction: column;
     }
+
     #canvas {
       border: 1px solid #aaa;
       touch-action: none;
       background-color: white;
     }
-    #toolbar {
+
+    #tools {
       display: flex;
-      justify-content: space-between;
-      width: 400px;
-      margin-top: 10px;
+      justify-content: space-around;
+      align-items: center;
+      width: 100%;
+      max-width: 400px;
+      margin-top: 20px;
     }
-    .tool-button {
-      background-color: transparent;
+
+    .tool {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tool label {
+      color: white;
+      margin-bottom: 5px;
+    }
+
+    #sendBtn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #28a745;
+      color: white;
       border: none;
       cursor: pointer;
-      color: white;
-      font-size: 20px;
     }
-    .color-picker {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      border: 2px solid #aaa;
-    }
-    #size-slider {
-      width: 100px;
-    }
+
     #undoBtn {
       background-color: transparent;
       border: none;
       color: white;
-      font-size: 24px;
+      font-size: 18px;
       cursor: pointer;
     }
-    .arrow-left {
-      transform: rotate(180deg); /* Rotate to make it a left arrow */
+
+    #undoBtn:hover {
+      color: #ff6347;
     }
+
+    input[type="range"] {
+      width: 150px;
+    }
+
+    input[type="color"] {
+      cursor: pointer;
+    }
+
   </style>
 </head>
 <body>
 
   <canvas id="canvas" width="600" height="400"></canvas>
-  
-  <div id="toolbar">
-    <!-- Color picker circle -->
-    <button id="colorPickerBtn" class="tool-button">
-      <div id="colorCircle" class="color-picker" style="background-color: black;"></div>
-    </button>
 
-    <!-- Slider for brush size -->
-    <input type="range" id="size-slider" min="1" max="20" value="5" step="1">
-    <span id="brush-size">5</span>
-
-    <!-- Undo Button (arrow) -->
-    <button id="undoBtn" class="tool-button">
-      <span class="arrow-left">←</span>
-    </button>
+  <div id="tools">
+    <div class="tool">
+      <label for="size">Size</label>
+      <input type="range" id="size" min="1" max="20" value="5">
+    </div>
+    <div class="tool">
+      <label for="color">Color</label>
+      <input type="color" id="color" value="#000000">
+    </div>
+    <div class="tool">
+      <button id="undoBtn">&#8592;</button>
+    </div>
   </div>
 
   <button id="sendBtn">Submit Drawing</button>
@@ -82,63 +101,64 @@
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     let drawing = false;
-    let brushSize = 5; // Default brush size
-    let brushColor = 'black'; // Default color
-    let paths = []; // Array to store paths for undo functionality
+    let prevX = 0;
+    let prevY = 0;
+    let strokeSize = 5;
+    let strokeColor = "#000000";
+    let paths = []; // Store drawing paths for undo functionality
 
-    canvas.addEventListener('pointerdown', e => {
+    canvas.addEventListener('pointerdown', (e) => {
       drawing = true;
+      prevX = e.offsetX;
+      prevY = e.offsetY;
       ctx.beginPath();
-      ctx.moveTo(e.offsetX, e.offsetY);
-      paths.push({x: e.offsetX, y: e.offsetY, brushSize, brushColor});
+      ctx.moveTo(prevX, prevY);
     });
 
-    canvas.addEventListener('pointermove', e => {
+    canvas.addEventListener('pointermove', (e) => {
       if (!drawing) return;
-      ctx.lineTo(e.offsetX, e.offsetY);
-      ctx.lineWidth = brushSize;
-      ctx.strokeStyle = brushColor;
+      const currentX = e.offsetX;
+      const currentY = e.offsetY;
+      ctx.lineTo(currentX, currentY);
       ctx.stroke();
-      paths.push({x: e.offsetX, y: e.offsetY, brushSize, brushColor});
+      prevX = currentX;
+      prevY = currentY;
     });
 
     canvas.addEventListener('pointerup', () => {
       drawing = false;
+      paths.push(canvas.toDataURL()); // Save current drawing for undo
     });
 
-    // Update brush size based on the slider
-    document.getElementById('size-slider').addEventListener('input', (e) => {
-      brushSize = e.target.value;
-      document.getElementById('brush-size').textContent = brushSize;
+    // Initialize color and size controls
+    document.getElementById('size').addEventListener('input', (e) => {
+      strokeSize = e.target.value;
+      ctx.lineWidth = strokeSize;
     });
 
-    // Change color using the color picker
-    document.getElementById('colorPickerBtn').addEventListener('click', () => {
-      const newColor = prompt('Enter color (name or hex code):', brushColor);
-      if (newColor) {
-        brushColor = newColor;
-        document.getElementById('colorCircle').style.backgroundColor = brushColor;
-      }
+    document.getElementById('color').addEventListener('input', (e) => {
+      strokeColor = e.target.value;
+      ctx.strokeStyle = strokeColor;
     });
 
-    // Undo functionality (go back one step)
+    // Undo the last action
     document.getElementById('undoBtn').addEventListener('click', () => {
       if (paths.length > 0) {
-        paths.pop(); // Remove the last path
-        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
-        // Redraw the remaining paths
-        ctx.beginPath();
-        paths.forEach(path => {
-          ctx.moveTo(path.x, path.y);
-          ctx.lineTo(path.x, path.y); // Recreate the paths
-          ctx.lineWidth = path.brushSize;
-          ctx.strokeStyle = path.brushColor;
-          ctx.stroke();
-        });
+        paths.pop(); // Remove the last drawing from the stack
+        const lastPath = paths[paths.length - 1];
+        if (lastPath) {
+          const img = new Image();
+          img.src = lastPath;
+          img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+          };
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+        }
       }
     });
 
-    // Supabase client setup
     const { createClient } = supabase;
     const supaClient = createClient(
       'https://gysrnzysffvlpzxlcdbz.supabase.co',
