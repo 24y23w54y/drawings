@@ -8,162 +8,123 @@
   <meta http-equiv="Content-Security-Policy" content="connect-src 'self' https://gysrnzysffvlpzxlcdbz.supabase.co;">
   <style>
     body {
-      background-color: black;
       font-family: Arial, sans-serif;
+      background-color: #2D5273;
+      color: #B8CCD9;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
+      justify-content: center;
       height: 100vh;
       margin: 0;
-      flex-direction: column;
     }
-
     #canvas {
       border: 1px solid #aaa;
-      touch-action: none;
       background-color: white;
     }
-
-    #tools {
+    #toolbar {
       display: flex;
       justify-content: space-around;
       align-items: center;
       width: 100%;
-      max-width: 400px;
-      margin-top: 20px;
+      max-width: 600px;
+      padding: 10px;
+      margin-bottom: 20px;
+      background-color: #659DBF;
+      border-radius: 10px;
     }
-
-    .tool {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .tool label {
-      color: white;
-      margin-bottom: 5px;
-    }
-
     #sendBtn {
-      margin-top: 20px;
+      background-color: #D9A13B;
+      color: white;
       padding: 10px 20px;
-      background-color: #28a745;
-      color: white;
       border: none;
+      border-radius: 5px;
       cursor: pointer;
+      font-size: 16px;
     }
-
-    #undoBtn {
-      background-color: transparent;
-      border: none;
-      color: white;
-      font-size: 18px;
-      cursor: pointer;
+    #sendBtn:hover {
+      background-color: #F2DC9B;
     }
-
-    #undoBtn:hover {
-      color: #ff6347;
-    }
-
     input[type="range"] {
-      width: 150px;
+      width: 200px;
     }
-
-    input[type="color"] {
+    .color-picker {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
       cursor: pointer;
+      background-color: #659DBF;
     }
-
   </style>
 </head>
 <body>
 
-  <canvas id="canvas" width="600" height="400"></canvas>
-
-  <div id="tools">
-    <div class="tool">
-      <label for="size">Size</label>
-      <input type="range" id="size" min="1" max="20" value="5">
-    </div>
-    <div class="tool">
-      <label for="color">Color</label>
-      <input type="color" id="color" value="#000000">
-    </div>
-    <div class="tool">
-      <button id="undoBtn">&#8592;</button>
-    </div>
+  <div id="toolbar">
+    <input type="range" id="brushSize" min="1" max="20" value="5">
+    <div class="color-picker" id="colorPicker"></div>
+    <button id="undoBtn">↩️</button>
   </div>
 
-  <button id="sendBtn">Submit Drawing</button>
+  <canvas id="canvas" width="600" height="400" style="touch-action:none;"></canvas>
+
+  <button id="sendBtn">Send Drawing</button>
   <p id="message"></p>
 
   <script>
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     let drawing = false;
-    let prevX = 0;
-    let prevY = 0;
-    let strokeSize = 5;
-    let strokeColor = "#000000";
-    let paths = []; // Store drawing paths for undo functionality
-
-    canvas.addEventListener('pointerdown', (e) => {
-      drawing = true;
-      prevX = e.offsetX;
-      prevY = e.offsetY;
-      ctx.beginPath();
-      ctx.moveTo(prevX, prevY);
-    });
-
-    canvas.addEventListener('pointermove', (e) => {
-      if (!drawing) return;
-      const currentX = e.offsetX;
-      const currentY = e.offsetY;
-      ctx.lineTo(currentX, currentY);
-      ctx.stroke();
-      prevX = currentX;
-      prevY = currentY;
-    });
-
-    canvas.addEventListener('pointerup', () => {
-      drawing = false;
-      paths.push(canvas.toDataURL()); // Save current drawing for undo
-    });
-
-    // Initialize color and size controls
-    document.getElementById('size').addEventListener('input', (e) => {
-      strokeSize = e.target.value;
-      ctx.lineWidth = strokeSize;
-    });
-
-    document.getElementById('color').addEventListener('input', (e) => {
-      strokeColor = e.target.value;
-      ctx.strokeStyle = strokeColor;
-    });
-
-    // Undo the last action
-    document.getElementById('undoBtn').addEventListener('click', () => {
-      if (paths.length > 0) {
-        paths.pop(); // Remove the last drawing from the stack
-        const lastPath = paths[paths.length - 1];
-        if (lastPath) {
-          const img = new Image();
-          img.src = lastPath;
-          img.onload = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-          };
-        } else {
-          ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
-        }
-      }
-    });
+    let lineHistory = [];
+    let currentLine = [];
 
     const { createClient } = supabase;
     const supaClient = createClient(
       'https://gysrnzysffvlpzxlcdbz.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5c3JuenlzZmZ2bHB6eGxjZGJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MDE1MzEsImV4cCI6MjA2MTM3NzUzMX0.H816-ePiMfGqsv4RRU1q1CwoFliRDH1PH8rppufSf7I'
     );
+
+    canvas.addEventListener('pointerdown', e => {
+      drawing = true;
+      currentLine = [{ x: e.offsetX, y: e.offsetY }];
+      ctx.beginPath();
+      ctx.moveTo(e.offsetX, e.offsetY);
+    });
+
+    canvas.addEventListener('pointermove', e => {
+      if (!drawing) return;
+      ctx.lineTo(e.offsetX, e.offsetY);
+      ctx.stroke();
+      currentLine.push({ x: e.offsetX, y: e.offsetY });
+    });
+
+    canvas.addEventListener('pointerup', () => {
+      drawing = false;
+      lineHistory.push(currentLine);
+    });
+
+    document.getElementById('brushSize').addEventListener('input', e => {
+      ctx.lineWidth = e.target.value;
+    });
+
+    document.getElementById('colorPicker').addEventListener('click', () => {
+      ctx.strokeStyle = ctx.strokeStyle === 'black' ? '#659DBF' : 'black';
+      document.getElementById('colorPicker').style.backgroundColor = ctx.strokeStyle;
+    });
+
+    document.getElementById('undoBtn').addEventListener('click', () => {
+      if (lineHistory.length === 0) return;
+      lineHistory.pop();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      lineHistory.forEach(line => {
+        ctx.beginPath();
+        ctx.moveTo(line[0].x, line[0].y);
+        line.forEach(point => ctx.lineTo(point.x, point.y));
+        ctx.stroke();
+      });
+    });
 
     document.getElementById('sendBtn').addEventListener('click', async () => {
       canvas.toBlob(async (blob) => {
@@ -172,16 +133,16 @@
           return;
         }
 
-        const fileName = `drawing-${Date.now()}.png`;
+        const fileName = `drawing-${Date.now()}.jpeg`;
         const { data, error } = await supaClient
           .storage
           .from('drawings')
-          .upload(fileName, blob, { contentType: 'image/png' });
+          .upload(fileName, blob, { contentType: 'image/jpeg' });
 
         if (error) throw error;
         console.log('✔ Upload réussi', data);
         document.getElementById('message').textContent = 'Your drawing has been sent!';
-      }, 'image/png');
+      }, 'image/jpeg');
     });
   </script>
 
