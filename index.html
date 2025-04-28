@@ -1,193 +1,224 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Draw and Send</title>
-  <!-- 1) Import Supabase JS via CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> <!-- :contentReference[oaicite:0]{index=0} -->
-  <style>
-    :root {
-      --background-color: #1e1e1e;
-      --toolbar-background: #2c2c2c;
-      --button-background: #fff;
-      --button-text: #000;
-      --canvas-shadow: rgba(0, 0, 0, 0.5);
-    }
+    <meta charset="UTF-8">
+    <title>Welcome</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      // Après avoir chargé le CDN
+      const { createClient } = supabase
+      const supabaseClient = createClient(
+        'https://gysrnzysffvlpzxlcdbz.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5c3JuenlzZmZ2bHB6eGxjZGJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MDE1MzEsImV4cCI6MjA2MTM3NzUzMX0.H816-ePiMfGqsv4RRU1q1CwoFliRDH1PH8rppufSf7I'
+      )
+    </script>
+    
 
-    body.light-mode {
-      --background-color: #f4f4f4;
-      --toolbar-background: #e0e0e0;
-      --button-background: #333;
-      --button-text: #fff;
-      --canvas-shadow: rgba(0, 0, 0, 0.2);
-    }
+    <style>
+        :root {
+            --background-color: #1e1e1e;
+            --toolbar-background: #2c2c2c;
+            --button-background: #fff;
+            --button-text: #000;
+            --canvas-shadow: rgba(0, 0, 0, 0.5);
+        }
 
-    body {
-      margin: 0;
-      background: var(--background-color);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      transition: background 0.3s ease;
-      font-family: Arial, sans-serif;
-      position: relative;
-    }
+        body.light-mode {
+            --background-color: #f4f4f4;
+            --toolbar-background: #e0e0e0;
+            --button-background: #333;
+            --button-text: #fff;
+            --canvas-shadow: rgba(0, 0, 0, 0.2);
+        }
 
-    #toolbar {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: var(--toolbar-background);
-      padding: 10px;
-      border-radius: 10px;
-      margin: 20px 0;
-      gap: 10px;
-      width: fit-content;
-      transition: background 0.3s ease;
-    }
+        body {
+            margin: 0;
+            background: var(--background-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            transition: background 0.3s ease;
+            font-family: Arial, sans-serif;
+            position: relative;
+        }
 
-    #modeToggle, #bestToggle {
-      position: absolute;
-      right: 20px;
-      background: var(--toolbar-background);
-      color: var(--button-background);
-      border: none;
-      padding: 8px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 24px;
-      z-index: 10;
-    }
-    #modeToggle { top: 20px; }
-    #bestToggle { top: 60px; }
+        #toolbar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--toolbar-background);
+            padding: 10px;
+            border-radius: 10px;
+            margin: 20px 0;
+            gap: 10px;
+            width: fit-content;
+            transition: background 0.3s ease;
+        }
 
-    #colorPicker { width: 30px; height: 30px; border: none; background: none; cursor: pointer; }
-    #sizeSlider { width: 100px; }
+        #modeToggle, #bestToggle {
+            position: absolute;
+            right: 20px;
+            background: var(--toolbar-background);
+            color: var(--button-background);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 24px;
+            z-index: 10;
+        }
+        #modeToggle { top: 20px; }
+        #bestToggle { top: 60px; }
 
-    button {
-      background: var(--button-background);
-      color: var(--button-text);
-      border: none;
-      padding: 8px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 16px;
-      transition: background 0.3s, transform 0.3s;
-    }
-    button:hover { transform: scale(1.05); }
+        #colorPicker {
+            width: 30px;
+            height: 30px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            appearance: none;
+            padding: 0;
+        }
 
-    #undoBtn, #clearBtn {
-      font-size: 24px;
-      background: none;
-      color: var(--button-background);
-    }
-    #clearBtn:hover { animation: shake 0.5s infinite alternate; }
-    @keyframes shake {
-      0% { transform: rotate(-5deg); }
-      100% { transform: rotate(5deg); }
-    }
+        #sizeSlider { width: 100px; }
 
-    #canvas-container {
-      position: relative;
-      padding: 0;
-      background: transparent;
-      box-shadow: none;
-      margin: 20px 0;
-    }
+        button {
+            background: var(--button-background);
+            color: var(--button-text);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s, transform 0.3s;
+        }
 
-    canvas {
-      background: white;
-      border-radius: 8px;
-      border: none;
-    }
+        button:hover { transform: scale(1.05); }
 
-    #sendBtn { margin-bottom: 20px; }
+        #undoBtn, #clearBtn {
+            font-size: 24px;
+            background: none;
+            color: var(--button-background);
+        }
 
-    #confirmation {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      margin-top: 10px;
-      text-align: center;
-      color: var(--button-background);
-    }
-    #confirmation h1 { font-size: 32px; margin-bottom: 20px; }
+        #clearBtn:hover { animation: shake 0.5s infinite alternate; }
 
-    /* Best Art Section */
-    #bestArtSection {
-      display: none;
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: var(--background-color);
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-      z-index: 5;
-    }
-    #bestArtSection h1 { color: var(--button-background); }
-    .best-art-container {
-      display: flex; justify-content: center; gap: 20px;
-    }
-    .best-art-template {
-      width: 200px; height: 200px;
-      border: 2px dashed #888; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      color: #444; font-size: 16px;
-    }
-    #menuBtn {
-      background: var(--toolbar-background);
-      color: var(--button-background);
-      border: none; padding: 8px 16px;
-      border-radius: 8px; cursor: pointer; font-size: 16px;
-    }
-  </style>
+        @keyframes shake {
+            0% { transform: rotate(-5deg); }
+            100% { transform: rotate(5deg); }
+        }
+
+        #canvas-container {
+            position: relative;
+            padding: 0;
+            background: transparent;
+            box-shadow: none;
+            margin: 20px 0;
+        }
+
+        canvas {
+            background: white;
+            border-radius: 8px;
+            border: none;
+        }
+
+        #sendBtn { margin-bottom: 20px; }
+
+        #confirmation {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+            text-align: center;
+            color: var(--button-background);
+        }
+
+        #confirmation h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        /* Best Art Section */
+        #bestArtSection {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--background-color);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            z-index: 5;
+        }
+        #bestArtSection h1 {
+            color: var(--button-background);
+        }
+        .best-art-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .best-art-template {
+            width: 200px;
+            height: 200px;
+            border: 2px dashed #888;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #444;
+            font-size: 16px;
+        }
+        #menuBtn {
+            background: var(--toolbar-background);
+            color: var(--button-background);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+    </style>
 </head>
 <body>
 
-  <div id="toolbar">
+<div id="toolbar">
     <input type="color" id="colorPicker">
     <input type="range" id="sizeSlider" min="1" max="30" value="5">
     <button id="undoBtn">↶</button>
     <button id="clearBtn">💣</button>
-  </div>
+</div>
 
-  <button id="modeToggle">☀️</button>
-  <button id="bestToggle">🏆</button>
+<button id="modeToggle">☀️</button>
+<button id="bestToggle">🏆</button>
 
-  <div id="canvas-container">
+<div id="canvas-container">
     <canvas id="drawingCanvas" width="400" height="400"></canvas>
-  </div>
+</div>
 
-  <button id="sendBtn">Send</button>
+<button id="sendBtn">Send</button>
 
-  <div id="confirmation">
+<div id="confirmation">
     <h1>Drawing Sent!</h1>
     <button id="drawAgainBtn">Draw Again?</button>
-  </div>
+</div>
 
-  <div id="bestArtSection">
+<div id="bestArtSection">
     <h1>Best art people sent 👀</h1>
     <div class="best-art-container">
-      <div class="best-art-template">Coming Soon</div>
-      <div class="best-art-template">Could be you</div>
-      <div class="best-art-template">Not enough people yet</div>
+        <div class="best-art-template">Coming Soon</div>
+        <div class="best-art-template">Could be you</div>
+        <div class="best-art-template">Not enough people yet</div>
     </div>
     <button id="menuBtn">Menu</button>
-  </div>
+</div>
 
-  <script>
-    // 2) Initialisation Supabase
-    const { createClient } = supabase;  // global fourni par le CDN :contentReference[oaicite:1]{index=1}
-    const supabaseClient = createClient(
-      'https://gysrnzysffvlpzxlcdbz.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5c3JuenlzZmZ2bHB6eGxjZGJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MDE1MzEsImV4cCI6MjA2MTM3NzUzMX0.H816-ePiMfGqsv4RRU1q1CwoFliRDH1PH8rppufSf7I'
-    );
-
-    // Références DOM
+<script>
     const canvas = document.getElementById('drawingCanvas');
     const ctx = canvas.getContext('2d');
     const colorPicker = document.getElementById('colorPicker');
@@ -201,110 +232,118 @@
     const drawAgainBtn = document.getElementById('drawAgainBtn');
     const bestArtSection = document.getElementById('bestArtSection');
     const menuBtn = document.getElementById('menuBtn');
-    let isDrawing = false, history = [];
+    let isDrawing = false;
+    let history = [];
 
-    // Mode clair/sombre
+    // Load mode
     if (localStorage.getItem('mode') === 'light') {
-      document.body.classList.add('light-mode');
-      modeToggle.textContent = '🌙';
-    } else modeToggle.textContent = '☀️';
+        document.body.classList.add('light-mode');
+        modeToggle.textContent = '🌙';
+    } else {
+        modeToggle.textContent = '☀️';
+    }
     modeToggle.addEventListener('click', () => {
-      const light = document.body.classList.toggle('light-mode');
-      localStorage.setItem('mode', light ? 'light' : 'dark');
-      modeToggle.textContent = light ? '🌙' : '☀️';
+        document.body.classList.toggle('light-mode');
+        const isLight = document.body.classList.contains('light-mode');
+        localStorage.setItem('mode', isLight ? 'light' : 'dark');
+        modeToggle.textContent = isLight ? '🌙' : '☀️';
     });
 
-    // Logique dessin, undo, clear (inchangée)
-    function startPosition(e) { isDrawing = true; saveState(); draw(e); }
-    function endPosition() { isDrawing = false; ctx.beginPath(); }
-    function draw(e) {
-      if (!isDrawing) return;
-      ctx.lineWidth = sizeSlider.value;
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = colorPicker.value;
-      const rect = canvas.getBoundingClientRect();
-      ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    // Drawing logic
+    function startPosition(e) {
+        isDrawing = true;
+        saveState();
+        draw(e);
     }
-    function saveState() { history.push(canvas.toDataURL()); }
-    undoBtn.addEventListener('click', () => {
-      if (!history.length) return;
-      const img = new Image(); img.src = history.pop();
-      img.onload = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
+    function endPosition() {
+        isDrawing = false;
         ctx.beginPath();
-      };
+    }
+    function draw(e) {
+        if (!isDrawing) return;
+        ctx.lineWidth = sizeSlider.value;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = colorPicker.value;
+        const rect = canvas.getBoundingClientRect();
+        ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    }
+    function saveState() {
+        history.push(canvas.toDataURL());
+    }
+    undoBtn.addEventListener('click', () => {
+        if (history.length > 0) {
+            const img = new Image();
+            img.src = history.pop();
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                ctx.beginPath();
+            };
+        }
     });
     clearBtn.addEventListener('click', () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      saveState();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        saveState();
     });
 
-    // 3) Envoi vers Supabase Storage au clic sur Send
+    // Send retains drawing and disables further drawing
     sendBtn.addEventListener('click', () => {
-      toolbar.style.display = 'none';
-      modeToggle.style.display = 'none';
-      bestToggle.style.display = 'none';
-      sendBtn.style.display = 'none';
-      confirmation.style.display = 'flex';
-      canvas.style.pointerEvents = 'none';
-
-      canvas.toBlob(async (blob) => {
-        if (!blob) return console.error('Canvas toBlob failed');
-        const fileName = `drawing_${Date.now()}.jpg`;
-        const file = new File([blob], fileName, { type: 'image/jpeg' });
-        const { data, error } = await supabaseClient
-          .storage
-          .from('drawings')
-          .upload(fileName, file, { cacheControl: '3600', upsert: false, contentType: 'image/jpeg' });
-        if (error) console.error('Upload error:', error);
-        else console.log('Upload successful:', data.Key);
-      }, 'image/jpeg', 1.0);  // qualité maximale :contentReference[oaicite:2]{index=2}
+        canvas.toBlob(() => {});
+        document.getElementById('toolbar').style.display = 'none';
+        modeToggle.style.display = 'none';
+        bestToggle.style.display = 'none';
+        sendBtn.style.display = 'none';
+        confirmation.style.display = 'flex';
+        canvas.style.pointerEvents = 'none';
     });
 
-    // Réinitialiser via Draw Again
     drawAgainBtn.addEventListener('click', () => {
-      confirmation.style.display = 'none';
-      toolbar.style.display = 'flex';
-      modeToggle.style.display = 'block';
-      bestToggle.style.display = 'block';
-      sendBtn.style.display = 'block';
-      canvas.style.pointerEvents = 'auto';
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = 'white'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-      history = []; saveState();
+        confirmation.style.display = 'none';
+        document.getElementById('toolbar').style.display = 'flex';
+        modeToggle.style.display = 'block';
+        bestToggle.style.display = 'block';
+        sendBtn.style.display = 'block';
+        canvas.style.pointerEvents = 'auto';
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        history = [];
+        saveState();
     });
 
-    // Best Art (inchangé)
+    // Show Best Art
     bestToggle.addEventListener('click', () => {
-      toolbar.style.display = 'none';
-      canvas.style.pointerEvents = 'none';
-      sendBtn.style.display = 'none';
-      confirmation.style.display = 'none';
-      modeToggle.style.display = 'block';
-      bestToggle.style.display = 'block';
-      bestArtSection.style.display = 'flex';
+        document.getElementById('toolbar').style.display = 'none';
+        canvas.style.pointerEvents = 'none';
+        sendBtn.style.display = 'none';
+        confirmation.style.display = 'none';
+        modeToggle.style.display = 'block';
+        bestToggle.style.display = 'block';
+        bestArtSection.style.display = 'flex';
     });
+
+    // Return from Best Art
     menuBtn.addEventListener('click', () => {
-      bestArtSection.style.display = 'none';
-      toolbar.style.display = 'flex';
-      canvas.style.pointerEvents = 'auto';
-      sendBtn.style.display = 'block';
-      modeToggle.style.display = 'block';
-      bestToggle.style.display = 'block';
+        bestArtSection.style.display = 'none';
+        document.getElementById('toolbar').style.display = 'flex';
+        canvas.style.pointerEvents = 'auto';
+        sendBtn.style.display = 'block';
+        modeToggle.style.display = 'block';
+        bestToggle.style.display = 'block';
     });
 
     canvas.addEventListener('mousedown', startPosition);
     canvas.addEventListener('mouseup', endPosition);
     canvas.addEventListener('mousemove', draw);
 
-    // Initialisation du fond blanc
+    // Initial fill
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     saveState();
-  </script>
+</script>
+
 </body>
 </html>
