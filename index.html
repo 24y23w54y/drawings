@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The web site of pixou</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta http-equiv="Content-Security-Policy" content="connect-src 'self' https://gysrnzysffvlpzxlcdbz.supabase.co;">
+</head>
+<body>
+
+  <canvas id="canvas" width="600" height="400"
+          style="border:1px solid #aaa; touch-action:none;"></canvas>
+  <button id="sendBtn">Submit Drawing</button>
+  <p id="message"></p>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+    canvas.addEventListener('pointerdown', e => {
+      drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY);
+    });
+    canvas.addEventListener('pointermove', e => {
+      if (!drawing) return;
+      ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke();
+    });
+    canvas.addEventListener('pointerup', () => drawing = false);
+
+    const { createClient } = supabase;
+    const supaClient = createClient(
+      'https://gysrnzysffvlpzxlcdbz.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5c3JuenlzZmZ2bHB6eGxjZGJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MDE1MzEsImV4cCI6MjA2MTM3NzUzMX0.H816-ePiMfGqsv4RRU1q1CwoFliRDH1PH8rppufSf7I'
+    );
+
+    document.getElementById('sendBtn').addEventListener('click', async () => {
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          console.error('❌ Impossible de créer un Blob à partir du canvas.');
+          return;
+        }
+
+        const fileName = `drawing-${Date.now()}.png`;
+        const { data, error } = await supaClient
+          .storage
+          .from('drawings')
+          .upload(fileName, blob, { contentType: 'image/png' });
+
+        if (error) throw error;
+        console.log('✔ Upload réussi', data);
+        document.getElementById('message').textContent = 'Your drawing has been sent!';
+      }, 'image/png');
+    });
+  </script>
+
+</body>
+</html>
