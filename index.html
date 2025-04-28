@@ -1,38 +1,168 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The web site of pixou</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <meta http-equiv="Content-Security-Policy" content="connect-src 'self' https://gysrnzysffvlpzxlcdbz.supabase.co;">
+  <style>
+    body {
+      background-color: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+      margin: 0;
+    }
+
+    #canvas {
+      border: 1px solid #aaa;
+      touch-action: none;
+      margin-bottom: 20px;
+    }
+
+    .toolbar {
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .toolbar button {
+      padding: 5px 10px;
+      border: none;
+      background-color: #555;
+      color: white;
+      cursor: pointer;
+    }
+
+    .toolbar input[type="color"] {
+      padding: 5px;
+      cursor: pointer;
+    }
+
+    #sendBtn {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+    }
+
+    #sendBtn:hover {
+      background-color: #45a049;
+    }
+
+  </style>
 </head>
 <body>
 
-  <canvas id="canvas" width="600" height="400"
-          style="border:1px solid #aaa; touch-action:none;"></canvas>
+  <!-- Toolbar with color and pencil size -->
+  <div class="toolbar">
+    <input type="color" id="colorPicker" value="#000000">
+    <button id="increaseSize">Increase Size</button>
+    <button id="decreaseSize">Decrease Size</button>
+    <button id="undoBtn">Undo</button>
+  </div>
+
+  <!-- Canvas -->
+  <canvas id="canvas" width="600" height="400"></canvas>
+
+  <!-- Submit Button -->
   <button id="sendBtn">Submit Drawing</button>
+
   <p id="message"></p>
 
   <script>
+    // Canvas Setup
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     let drawing = false;
-    canvas.addEventListener('pointerdown', e => {
-      drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY);
-    });
-    canvas.addEventListener('pointermove', e => {
-      if (!drawing) return;
-      ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke();
-    });
-    canvas.addEventListener('pointerup', () => drawing = false);
+    let currentPath = [];
+    let allPaths = [];
+    let pencilSize = 5;
+    let currentColor = '#000000';
 
+    // Setup toolbar interactions
+    const colorPicker = document.getElementById('colorPicker');
+    const increaseSizeBtn = document.getElementById('increaseSize');
+    const decreaseSizeBtn = document.getElementById('decreaseSize');
+    const undoBtn = document.getElementById('undoBtn');
+
+    // Change the pencil color
+    colorPicker.addEventListener('input', (e) => {
+      currentColor = e.target.value;
+    });
+
+    // Increase pencil size
+    increaseSizeBtn.addEventListener('click', () => {
+      pencilSize += 1;
+    });
+
+    // Decrease pencil size
+    decreaseSizeBtn.addEventListener('click', () => {
+      if (pencilSize > 1) pencilSize -= 1;
+    });
+
+    // Undo last path
+    undoBtn.addEventListener('click', () => {
+      if (allPaths.length > 0) {
+        allPaths.pop();
+        redrawCanvas();
+      }
+    });
+
+    // Event listeners for drawing on canvas
+    canvas.addEventListener('pointerdown', (e) => {
+      drawing = true;
+      ctx.beginPath();
+      ctx.moveTo(e.offsetX, e.offsetY);
+      currentPath = [{ x: e.offsetX, y: e.offsetY }];
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+      if (!drawing) return;
+      ctx.lineTo(e.offsetX, e.offsetY);
+      ctx.stroke();
+      currentPath.push({ x: e.offsetX, y: e.offsetY });
+    });
+
+    canvas.addEventListener('pointerup', () => {
+      if (drawing) {
+        allPaths.push(currentPath);
+        drawing = false;
+      }
+    });
+
+    // Redraw the entire canvas based on all paths
+    function redrawCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+      ctx.lineWidth = pencilSize;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = currentColor;
+
+      // Redraw all paths
+      allPaths.forEach(path => {
+        ctx.beginPath();
+        ctx.moveTo(path[0].x, path[0].y);
+        path.forEach(point => {
+          ctx.lineTo(point.x, point.y);
+        });
+        ctx.stroke();
+      });
+    }
+
+    // Supabase client setup
     const { createClient } = supabase;
     const supaClient = createClient(
       'https://gysrnzysffvlpzxlcdbz.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5c3JuenlzZmZ2bHB6eGxjZGJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MDE1MzEsImV4cCI6MjA2MTM3NzUzMX0.H816-ePiMfGqsv4RRU1q1CwoFliRDH1PH8rppufSf7I'
+      'YOUR_SUPABASE_KEY'
     );
 
+    // Upload the drawing
     document.getElementById('sendBtn').addEventListener('click', async () => {
       canvas.toBlob(async (blob) => {
         if (!blob) {
@@ -51,6 +181,7 @@
         document.getElementById('message').textContent = 'Your drawing has been sent!';
       }, 'image/png');
     });
+
   </script>
 
 </body>
