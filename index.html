@@ -1,189 +1,214 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The web site of pixou</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pixou Draft</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <meta http-equiv="Content-Security-Policy" content="connect-src 'self' https://gysrnzysffvlpzxlcdbz.supabase.co;">
+  <meta http-equiv="Content-Security-Policy"
+        content="connect-src 'self' https://gysrnzysffvlpzxlcdbz.supabase.co;">
   <style>
-    body {
-      background-color: #2D5273;
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
+    /* ==== GLOBAL STYLE ==== */
+    body, html {
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
+      background: #2D5273;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Segoe UI', sans-serif;
     }
+    #app { text-align:center; max-width: 640px; width: 100%; }
 
-    #container {
-      text-align: center;
-    }
-
-    #canvas {
-      border: 1px solid #aaa;
-      background-color: white;
-      display: block;
-      margin: 0 auto;
-    }
-
+    /* ==== TOOLBAR ==== */
     .toolbar {
-      background-color: #659DBF;
-      padding: 10px;
-      border-radius: 10px;
-      margin-bottom: 20px;
+      display: flex; justify-content: center; gap: 20px;
+      background: #659DBF; padding: 8px; border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .tool {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .tool input[type="color"] {
+      width: 32px; height: 32px;
+      border: none; padding:0;
+      background:none; cursor:pointer;
+    }
+    .tool input[type="range"] {
+      width: 120px; cursor:pointer;
+    }
+    .tool button {
+      background: none; border: none;
+      font-size: 20px; cursor: pointer;
+      color: #B8CCD9;
+    }
+    .tool button:hover {
+      color: #F2DC9B;
     }
 
-    .toolbar div {
-      display: inline-block;
-      margin: 0 10px;
+    /* ==== CANVAS ==== */
+    #canvas {
+      display: block;
+      background: white;
+      border: 2px solid #B8CCD9;
+      border-radius: 4px;
+      touch-action: none;
     }
+    #sendBtn, #clearBtn {
+      margin: 12px 6px 0;
+      padding: 10px 24px;
+      border: none; border-radius: 6px;
+      font-size: 16px; cursor: pointer;
+      color: white;
+    }
+    #sendBtn { background: #D9A13B; }
+    #sendBtn:hover { background: #F2DC9B; color: #2D5273; }
+    #clearBtn { background: #B8CCD9; color: #2D5273; }
+    #clearBtn:hover { background: #659DBF; }
 
-    #sendBtn {
-      background-color: #F2DC9B;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-top: 10px;
+    /* ==== SENT SCREEN ==== */
+    #sentScreen {
+      display: none;
+      color: #F2DC9B;
+      font-size: 28px;
     }
-
-    #sendBtn:hover {
-      background-color: #D9A13B;
+    #drawAgainBtn {
+      margin-top: 20px;
+      padding: 10px 24px;
+      background: #659DBF;
+      border: none; border-radius: 6px;
+      color: white; cursor: pointer;
     }
-
-    .slider {
-      width: 100px;
-    }
-
-    .colorPicker {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      cursor: pointer;
-    }
-
-    #clearBtn {
-      background-color: #D9A13B;
-      padding: 10px 20px;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-top: 10px;
-    }
+    #drawAgainBtn:hover { background: #B8CCD9; color: #2D5273; }
   </style>
 </head>
 <body>
-
-  <div id="container">
-    <div class="toolbar">
-      <div>
-        <input type="color" id="colorPicker" class="colorPicker" value="#000000">
+  <div id="app">
+    <!-- Toolbar -->
+    <div id="toolbar" class="toolbar">
+      <div class="tool">
+        <input type="color" id="colorPicker" value="#000000"/>
       </div>
-      <div>
-        <input type="range" id="sizeSlider" class="slider" min="1" max="20" value="5">
+      <div class="tool">
+        <input type="range" id="sizeSlider" min="1" max="20" value="5"/>
       </div>
-      <div>
-        <button id="undoBtn">
-          &#8592; <!-- Left arrow -->
-        </button>
+      <div class="tool">
+        <button id="undoBtn">↺</button>
       </div>
     </div>
 
-    <canvas id="canvas" width="600" height="400" style="touch-action:none;"></canvas>
-    <button id="sendBtn">Send Drawing</button>
-    <button id="clearBtn">Clear Drawing</button>
-    <p id="message"></p>
+    <!-- Canvas -->
+    <canvas id="canvas" width="600" height="400"></canvas>
+
+    <!-- Actions -->
+    <div id="actions">
+      <button id="sendBtn">Send</button>
+      <button id="clearBtn">Clear</button>
+    </div>
+
+    <!-- Sent Confirmation -->
+    <div id="sentScreen">
+      Drawing sent!  
+      <br/>
+      <button id="drawAgainBtn">Draw again?</button>
+    </div>
   </div>
 
   <script>
+    // ==== SETUP ====
     const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    let drawing = false;
-    let lastX, lastY;
-    let strokeColor = '#000000'; // Default color
-    let lineWidth = 5; // Default line width
-    let drawingHistory = [];
+    const ctx    = canvas.getContext('2d');
+    const colorPicker = document.getElementById('colorPicker');
+    const sizeSlider  = document.getElementById('sizeSlider');
+    const undoBtn     = document.getElementById('undoBtn');
+    const sendBtn     = document.getElementById('sendBtn');
+    const clearBtn    = document.getElementById('clearBtn');
+    const toolbar     = document.getElementById('toolbar');
+    const actions     = document.getElementById('actions');
+    const sentScreen  = document.getElementById('sentScreen');
+    const drawAgainBtn = document.getElementById('drawAgainBtn');
 
-    canvas.addEventListener('pointerdown', (e) => {
-      drawing = true;
-      lastX = e.offsetX;
-      lastY = e.offsetY;
+    let drawing = false, paths = [], currentPath = [];
+
+    // Initial styles
+    ctx.lineCap   = 'round';
+    ctx.lineJoin  = 'round';
+    ctx.strokeStyle = colorPicker.value;
+    ctx.lineWidth   = sizeSlider.value;
+
+    // ==== DRAWING EVENTS ====
+    canvas.addEventListener('pointerdown', e => {
+      drawing   = true;
+      currentPath = [];
       ctx.beginPath();
-      ctx.moveTo(lastX, lastY);
+      ctx.moveTo(e.offsetX, e.offsetY);
+      currentPath.push({x:e.offsetX,y:e.offsetY, color: ctx.strokeStyle, size: ctx.lineWidth});
     });
-
-    canvas.addEventListener('pointermove', (e) => {
+    canvas.addEventListener('pointermove', e => {
       if (!drawing) return;
       ctx.lineTo(e.offsetX, e.offsetY);
       ctx.stroke();
-      lastX = e.offsetX;
-      lastY = e.offsetY;
+      currentPath.push({x:e.offsetX,y:e.offsetY, color: ctx.strokeStyle, size: ctx.lineWidth});
+    });
+    canvas.addEventListener('pointerup', e => {
+      drawing = false;
+      paths.push(currentPath);
     });
 
-    canvas.addEventListener('pointerup', () => drawing = false);
+    // ==== TOOLBAR ====
+    colorPicker.addEventListener('input', e => {
+      ctx.strokeStyle = e.target.value;
+      colorPicker.style.background = e.target.value;
+    });
+    sizeSlider.addEventListener('input', e => {
+      ctx.lineWidth = e.target.value;
+    });
+    undoBtn.addEventListener('click', () => {
+      if (!paths.length) return;
+      paths.pop();
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      paths.forEach(path=>{
+        ctx.beginPath();
+        ctx.strokeStyle = path[0].color;
+        ctx.lineWidth   = path[0].size;
+        ctx.moveTo(path[0].x,path[0].y);
+        path.slice(1).forEach(pt=>{
+          ctx.lineTo(pt.x,pt.y);
+        });
+        ctx.stroke();
+      });
+    });
 
-    // Supabase client initialization
+    clearBtn.addEventListener('click', () => {
+      paths = [];
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+    });
+
+    // ==== SUPABASE ====
     const { createClient } = supabase;
     const supaClient = createClient(
       'https://gysrnzysffvlpzxlcdbz.supabase.co',
-      'your-supabase-key-here'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh...',
     );
 
-    // Send drawing to Supabase
-    document.getElementById('sendBtn').addEventListener('click', async () => {
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          console.error('❌ Impossible de créer un Blob à partir du canvas.');
-          return;
-        }
+    sendBtn.addEventListener('click', async () => {
+      // Hide tools & show sent screen
+      toolbar.style.display = 'none';
+      actions.style.display = 'none';
+      sentScreen.style.display = 'block';
 
+      canvas.toBlob(async blob => {
         const fileName = `drawing-${Date.now()}.jpg`;
-        const { data, error } = await supaClient
-          .storage
-          .from('drawings')
+        await supaClient.storage.from('drawings')
           .upload(fileName, blob, { contentType: 'image/jpeg' });
-
-        if (error) throw error;
-        console.log('✔ Upload réussi', data);
-        document.getElementById('message').textContent = 'Your drawing has been sent!';
       }, 'image/jpeg');
     });
 
-    // Clear the canvas
-    document.getElementById('clearBtn').addEventListener('click', () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawingHistory = []; // Reset history
-    });
-
-    // Undo the last drawing
-    document.getElementById('undoBtn').addEventListener('click', () => {
-      if (drawingHistory.length > 0) {
-        drawingHistory.pop();
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawingHistory.forEach((path) => {
-          ctx.beginPath();
-          ctx.moveTo(path[0].x, path[0].y);
-          path.forEach((point) => {
-            ctx.lineTo(point.x, point.y);
-          });
-          ctx.stroke();
-        });
-      }
-    });
-
-    // Change color
-    document.getElementById('colorPicker').addEventListener('input', (e) => {
-      strokeColor = e.target.value;
-      ctx.strokeStyle = strokeColor;
-    });
-
-    // Change line width
-    document.getElementById('sizeSlider').addEventListener('input', (e) => {
-      lineWidth = e.target.value;
-      ctx.lineWidth = lineWidth;
+    drawAgainBtn.addEventListener('click', () => {
+      // Reset UI
+      sentScreen.style.display = 'none';
+      toolbar.style.display = 'flex';
+      actions.style.display = 'block';
+      clearBtn.click();
     });
   </script>
-
 </body>
 </html>
