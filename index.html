@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>BETA 1.3</title>
+    <meta charset="UTF-8" />
+    <title>BETA 1.4</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
       const { createClient } = supabase;
@@ -181,15 +181,23 @@
             cursor: pointer;
             font-size: 16px;
         }
+
+        /* Worst Art Section (reuse styles from best-art-container) */
+        #worstArtSection {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            margin-top: 40px;
+            color: var(--button-background);
+        }
     </style>
 </head>
 <body>
 
-<!-- HTML identique à ton code (pas besoin de changer) -->
-
 <div id="toolbar">
-    <input type="color" id="colorPicker">
-    <input type="range" id="sizeSlider" min="1" max="30" value="5">
+    <input type="color" id="colorPicker" value="#000000" />
+    <input type="range" id="sizeSlider" min="1" max="30" value="5" />
     <button id="undoBtn">↶</button>
     <button id="clearBtn">💣</button>
 </div>
@@ -216,6 +224,16 @@
         <div class="best-art-template">Not enough people yet</div>
     </div>
     <button id="menuBtn">Menu</button>
+
+    <!-- Section Worst Art ajoutée ici -->
+    <div id="worstArtSection">
+        <h1>Worst art people sent 💀</h1>
+        <div class="best-art-container">
+            <div class="best-art-template">Template 1</div>
+            <div class="best-art-template">Template 2</div>
+            <div class="best-art-template">Template 3</div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -232,15 +250,18 @@
     const drawAgainBtn = document.getElementById('drawAgainBtn');
     const bestArtSection = document.getElementById('bestArtSection');
     const menuBtn = document.getElementById('menuBtn');
+
     let isDrawing = false;
     let history = [];
 
+    // Initial mode toggle state from localStorage
     if (localStorage.getItem('mode') === 'light') {
         document.body.classList.add('light-mode');
         modeToggle.textContent = '🌙';
     } else {
         modeToggle.textContent = '☀️';
     }
+
     modeToggle.addEventListener('click', () => {
         document.body.classList.toggle('light-mode');
         const isLight = document.body.classList.contains('light-mode');
@@ -290,27 +311,26 @@
     });
 
     sendBtn.addEventListener('click', async () => {
-    canvas.toBlob(async (blob) => {
-        const fileName = `art-${Date.now()}.png`;
-        const { data, error } = await supabaseClient
-            .storage
-            .from('arts') // <-- nom du bucket
-            .upload(fileName, blob, { contentType: 'image/png' });
+        canvas.toBlob(async (blob) => {
+            const fileName = `art-${Date.now()}.jpg`;
+            const { data, error } = await supabaseClient
+                .storage
+                .from('arts')
+                .upload(fileName, blob, { contentType: 'image/jpeg' });
 
-        if (!error) {
-            document.getElementById('toolbar').style.display = 'none';
-            modeToggle.style.display = 'none';
-            bestToggle.style.display = 'none';
-            sendBtn.style.display = 'none';
-            confirmation.style.display = 'flex';
-            canvas.style.pointerEvents = 'none';
-        } else {
-            alert('Erreur lors de l\'envoi.');
-            console.error(error);
-        }
-    }, 'image/png');
-});
-
+            if (!error) {
+                document.getElementById('toolbar').style.display = 'none';
+                modeToggle.style.display = 'none';
+                bestToggle.style.display = 'none';
+                sendBtn.style.display = 'none';
+                confirmation.style.display = 'flex';
+                canvas.style.pointerEvents = 'none';
+            } else {
+                alert('Erreur lors de l\'envoi.');
+                console.error(error);
+            }
+        }, 'image/jpeg', 0.95);
+    });
 
     drawAgainBtn.addEventListener('click', () => {
         confirmation.style.display = 'none';
@@ -349,6 +369,7 @@
     canvas.addEventListener('mouseup', endPosition);
     canvas.addEventListener('mousemove', draw);
 
+    // Initial canvas background white
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     saveState();
