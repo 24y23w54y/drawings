@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>draw something</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+
+<style>
+
+html, body {
+  overflow-x: hidden !important;
+  max-width: 100vw;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+  :root {
+    --background-color: #1e1e1e;
+    --toolbar-background: #2c2c2c;
+    --button-background: #fff;
+    --button-text: #000;
+    --active-color: #ffc107;
+  }
+  body {
+    margin: 0;
+    background: var(--background-color);
+    font-family: Arial, sans-serif;
+    min-height: 100vh;
+    width: 100vw;
+    color: var(--button-background);
+    transition: background 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  #mainContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+  #toolbar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--toolbar-background);
+    padding: 6px 10px;
+    border-radius: 10px;
+    margin: 20px 0 10px 0;
+    gap: 10px;
+    width: fit-content;
+  }
+  #colorPicker {
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    appearance: none;
+    padding: 0;
+  }
+  #sizeSlider { width: 100px; }
+  button {
+    background: var(--button-background);
+    color: var(--button-text);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.3s, transform 0.3s;
+  }
+  button:hover { transform: scale(1.05); }
+  #undoBtn, #clearBtn {
+    font-size: 24px;
+    background: none;
+    color: var(--button-background);
+  }
+  #clearBtn:hover { animation: shake 0.5s infinite alternate; }
+  @keyframes shake {
+    0% { transform: rotate(-5deg); }
+    100% { transform: rotate(5deg); }
+  }
+  #canvas-container {
+    position: relative;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+    margin: 20px 0 30px 0;
+  }
+  canvas {
+    background: white;
+    border-radius: 8px;
+    border: none;
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    touch-action: none;
+    will-change: transform;
+  }
+  #sendBtn {
+    margin-bottom: 30px;
+    margin-top: 10px;
+  }
+  #canvasHint {
+    margin: 10px 0 0 0;
+    color: #aaa;
+    font-size: 1rem;
+    text-align: center;
+    transition: opacity 0.2s;
+  }
+  #confirmation {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
+    text-align: center;
+    color: var(--button-background);
+  }
+  #confirmation h1 {
+    font-size: 32px;
+    margin-bottom: 20px;
+  }
+  #inlineBestArtSection {
+    width: 100%;
+    max-width: 480px;
+    margin: 30px auto 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 20px;
+    background: none;
+    padding: 0;
+    box-sizing: border-box;
+    transition: opacity 0.2s;
+  }
+  #inlineBestArtSection h2 {
+    color: var(--button-background);
+    margin: 0 0 20px 0;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .best-art-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .best-art-template {
+    aspect-ratio: 1/1;
+    width: 200px;
+    max-width: 28vw;
+    border: 2px dashed #888;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #444;
+    font-size: 16px;
+    background: #222;
+    box-sizing: border-box;
+  }
+
+  .best-art-image {
+  width: 200px;
+  max-width: 28vw;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  border: 2px dashed #888;
+  border-radius: 8px;
+  background: #222;
+  display: block;
+}
+
+  hr.section-separator {
+    width: 100%;
+    max-width: 480px;
+    border: none;
+    border-top: none;
+    margin: 32px 0 24px 0;
+  }
+  footer {
+    width: 100%;
+    max-width: 480px;
+    height: 80px;
+    border-top: none;
+    margin-top: 40px;
+  }
+  #confetti-container {
+    pointer-events: none;
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    z-index: 10000;
+  }
+  @media (max-width: 700px) {
+    body {
+      justify-content: flex-start !important;
+    }
+    #mainContent {
+      justify-content: flex-start !important;
+    }
+    #inlineBestArtSection {
+      max-width: 98vw;
+      padding: 0;
+    }
+    .best-art-container {
+      flex-direction: column;
+      gap: 15px;
+      align-items: center;
+    }
+    .best-art-template {
+      width: 85vw;
+      max-width: 320px;
+      aspect-ratio: 1/1;
+      height: auto;
+      font-size: 15px;
+    }
+    hr.section-separator {
+      max-width: 98vw;
+    }
+    footer {
+      max-width: 98vw;
+    }
+  }
+  
+  .site-footer {
+  width: 100%;
+  max-width: 480px;
+  margin: 40px auto 0 auto;
+  padding-bottom: 18px;
+  color: #aaa;
+  font-size: 0.95rem;
+  text-align: center;
+  opacity: 0.7;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.site-footer div {
+  margin: 2px 0;
+}
+@media (max-width: 700px) {
+  .site-footer {
+    max-width: 98vw;
+    font-size: 0.92rem;
+    padding-bottom: 12px;
+  }
+}
+
+  
+</style>
+</head>
+<body>
+
+<div id="mainContent">
+  <div id="toolbar">
+    <input type="color" id="colorPicker">
+    <input type="range" id="sizeSlider" min="1" max="30" value="5">
+    <button id="undoBtn">↶</button>
+    <button id="clearBtn">💣</button>
+  </div>
+
+  <div id="canvas-container">
+    <canvas id="drawingCanvas" width="400" height="400"></canvas>
+  </div>
+  <p id="canvasHint">
+    draw something and send it anonymously 👀
+  </p>
+  <br>
+  <button id="sendBtn">Send</button>
+
+
+  <hr class="section-separator">
+
+
+  <section id="inlineBestArtSection">
+    <h2>some art sent to me</h2>
+    <div class="best-art-container">
+      <img src="images/art1.jpg" alt="Art 1" class="best-art-image">
+      <img src="images/art2.jpg" alt="Art 2" class="best-art-image">
+      <img src="images/art3.jpg" alt="Art 3" class="best-art-image">
+    </div>    
+  </section>
+</div>
+
+<div id="confirmation">
+  <h1>Drawing Sent!</h1>
+  <button id="drawAgainBtn">Draw Again?</button>
+</div>
+
+<footer></footer>
+<div id="confetti-container"></div>
+
+<script defer>
+document.addEventListener('DOMContentLoaded', () => {
+  const { createClient } = supabase;
+  const supabaseClient = createClient(
+    'https://gysrnzysffvlpzxlcdbz.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5c3JuenlzZmZ2bHB6eGxjZGJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MDE1MzEsImV4cCI6MjA2MTM3NzUzMX0.H816-ePiMfGqsv4RRU1q1CwoFliRDH1PH8rppufSf7I'
+  );
+
+  const canvas = document.getElementById('drawingCanvas');
+  const ctx = canvas.getContext('2d');
+  const colorPicker = document.getElementById('colorPicker');
+  const sizeSlider = document.getElementById('sizeSlider');
+  const undoBtn = document.getElementById('undoBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const sendBtn = document.getElementById('sendBtn');
+  const confirmation = document.getElementById('confirmation');
+  const drawAgainBtn = document.getElementById('drawAgainBtn');
+  const canvasHint = document.getElementById('canvasHint');
+  const inlineBestArtSection = document.getElementById('inlineBestArtSection');
+  const confettiContainer = document.getElementById('confetti-container');
+  let isDrawing = false;
+  let history = [];
+
+  function getPointerPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    let clientX, clientY;
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    return {
+      x: (clientX - rect.left) * (canvas.width / rect.width),
+      y: (clientY - rect.top) * (canvas.height / rect.height)
+    };
+  }
+
+  function startPosition(e) {
+    isDrawing = true;
+    saveState();
+    draw(e);
+  }
+  function endPosition() {
+    isDrawing = false;
+    ctx.beginPath();
+  }
+  function draw(e) {
+    if (!isDrawing) return;
+    ctx.lineWidth = sizeSlider.value;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = colorPicker.value;
+    const pos = getPointerPos(e);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    if (e.preventDefault) e.preventDefault();
+  }
+  function saveState() {
+    history.push(canvas.toDataURL());
+  }
+
+  undoBtn.addEventListener('click', () => {
+    if (history.length > 0) {
+      const img = new Image();
+      img.src = history.pop();
+      img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        ctx.beginPath();
+      };
+    }
+  });
+
+  clearBtn.addEventListener('click', () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    saveState();
+  });
+
+
+  function shakeCanvas() {
+    const animationDuration = 0; // ms
+    let start = null;
+    function animate(timestamp) {
+      if (!start) start = timestamp;
+      const elapsed = timestamp - start;
+      const intensity = 5;
+      const x = Math.sin(elapsed / 50) * intensity;
+      const y = Math.cos(elapsed / 50) * intensity;
+      canvas.style.transform = `translate(${x}px, ${y}px)`;
+      if (elapsed < animationDuration) {
+        requestAnimationFrame(animate);
+      } else {
+        canvas.style.transform = '';
+      }
+    }
+    requestAnimationFrame(animate);
+  }
+
+
+  function createConfettiPiece() {
+    const confetti = document.createElement('div');
+    confetti.style.position = 'absolute';
+    confetti.style.width = '8px';
+    confetti.style.height = '8px';
+    confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
+    confetti.style.left = `${Math.random() * window.innerWidth}px`;
+    confetti.style.top = `-10px`;
+    confetti.style.opacity = '1';
+    confetti.style.borderRadius = '2px';
+    confetti.style.pointerEvents = 'none';
+    confetti.style.zIndex = '10000';
+    confettiContainer.appendChild(confetti);
+
+    const fallDuration = 2000 + Math.random() * 1000;
+    const horizontalMove = (Math.random() - 0.5) * 100;
+
+    let start = null;
+    function fall(timestamp) {
+      if (!start) start = timestamp;
+      const elapsed = timestamp - start;
+      const progress = elapsed / fallDuration;
+      if (progress < 1) {
+        confetti.style.top = `${progress * window.innerHeight}px`;
+        confetti.style.left = `${parseFloat(confetti.style.left) + horizontalMove * progress}px`;
+        confetti.style.opacity = `${1 - progress}`;
+        requestAnimationFrame(fall);
+      } else {
+        confetti.remove();
+      }
+    }
+    requestAnimationFrame(fall);
+  }
+
+  function launchConfetti(count = 30) {
+    for (let i = 0; i < count; i++) {
+      setTimeout(createConfettiPiece, i * 50);
+    }
+  }
+
+function isCanvasBlank(canvas) {
+  const ctx = canvas.getContext('2d');
+  const pixelBuffer = new Uint32Array(
+    ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer
+  );
+
+  return pixelBuffer.every(color => color === 0xFFFFFFFF);
+}
+
+
+
+  sendBtn.addEventListener('click', async () => {
+  if (isCanvasBlank(canvas)) {
+      
+    return;
+  }
+  canvas.toBlob(async (blob) => {
+  const fileName = `art-${Date.now()}.jpg`;
+  const { data, error } = await supabaseClient
+    .storage
+    .from('arts')
+    .upload(fileName, blob, { contentType: 'image/jpeg' });
+
+      if (!error) {
+        document.getElementById('toolbar').style.display = 'none';
+        sendBtn.style.display = 'none';
+        confirmation.style.display = 'flex';
+        canvas.style.pointerEvents = 'none';
+        if (inlineBestArtSection) inlineBestArtSection.style.display = 'none';
+        if (canvasHint) canvasHint.style.display = 'none';
+
+        shakeCanvas();
+        launchConfetti(30);
+      } else {
+        alert('Erreur lors de l\'envoi.');
+        console.error(error);
+      }
+    }, 'image/jpeg', 0.8);
+  });
+
+  drawAgainBtn.addEventListener('click', () => {
+    confirmation.style.display = 'none';
+    document.getElementById('toolbar').style.display = 'flex';
+    sendBtn.style.display = 'block';
+    canvas.style.pointerEvents = 'auto';
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    history = [];
+    saveState();
+    if (inlineBestArtSection) inlineBestArtSection.style.display = 'flex';
+    if (canvasHint) canvasHint.style.display = '';
+  });
+
+
+  canvas.addEventListener('mousedown', startPosition);
+  canvas.addEventListener('mouseup', endPosition);
+  canvas.addEventListener('mouseleave', endPosition);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('touchstart', startPosition, { passive: false });
+  canvas.addEventListener('touchend', endPosition, { passive: false });
+  canvas.addEventListener('touchmove', draw, { passive: false });
+
+
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  saveState();
+});
+</script>
+
+</body>
+
+<footer class="site-footer">
+  <div>made by pixou</div>
+  <div>no copyright © 2025 balekouille inc.</div>
+</footer>
+
+</html>
