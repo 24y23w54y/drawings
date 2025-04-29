@@ -423,11 +423,11 @@ function isCanvasBlank(canvas) {
     return;
   }
   canvas.toBlob(async (blob) => {
-      const fileName = `art-${Date.now()}.png`;
-      const { data, error } = await supabaseClient
-        .storage
-        .from('arts')
-        .upload(fileName, blob, { contentType: 'image/png' });
+  const fileName = `art-${Date.now()}.jpg`;
+  const { data, error } = await supabaseClient
+    .storage
+    .from('arts')
+    .upload(fileName, blob, { contentType: 'image/jpeg' });
 
       if (!error) {
         document.getElementById('toolbar').style.display = 'none';
@@ -443,7 +443,7 @@ function isCanvasBlank(canvas) {
         alert('Erreur lors de l\'envoi.');
         console.error(error);
       }
-    }, 'image/png');
+    }, 'image/jpeg', 0.8);
   });
 
   drawAgainBtn.addEventListener('click', () => {
