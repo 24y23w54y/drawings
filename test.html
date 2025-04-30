@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>logs</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  body {
+    background: #111;
+    color: #eee;
+    font-family: Arial, sans-serif;
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #222;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th, td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #444;
+    text-align: left;
+    font-size: 0.9rem;
+  }
+  th {
+    background: #333;
+  }
+  tbody tr:hover {
+    background: #333;
+  }
+  td.ip {
+    font-family: monospace;
+  }
+</style>
+</head>
+<body>
+
+<h1>visitor Logs</h1>
+
+<table id="visitsTable" aria-label="Visitor logs table">
+  <thead>
+    <tr>
+      <th>Date/Time</th>
+      <th>Country</th>
+      <th>Region</th>
+      <th>City</th>
+      <th>IP</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  // Initialize Supabase client with your project URL and anon key
+  const supabaseClient = supabase.createClient(
+    'https://gysrnzysffvlpzxlcdbz.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5c3JuenlzZmZ2bHB6eGxjZGJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MDE1MzEsImV4cCI6MjA2MTM3NzUzMX0.H816-ePiMfGqsv4RRU1q1CwoFliRDH1PH8rppufSf7I'
+  );
+
+  // Function to mask IP partially (e.g. 123.45.xxx.xxx)
+  function maskIP(ip) {
+    if (!ip) return '';
+    const parts = ip.split('.');
+    if (parts.length === 4) {
+      return parts[0] + '.' + parts[1] + '.xxx.xxx';
+    }
+    return ip; // fallback if not IPv4
+  }
+
+  // Load visits from Supabase and display in table
+  async function loadVisits() {
+    const { data, error } = await supabaseClient
+      .from('visits')
+      .select('*')
+      .order('timestamp', { ascending: false })
+      .limit(20);
+
+    if (error) {
+      console.error('Error fetching visits:', error);
+      return;
+    }
+
+    const tbody = document.querySelector('#visitsTable tbody');
+    tbody.innerHTML = '';
+
+    data.forEach(visit => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${new Date(visit.timestamp).toLocaleString()}</td>
+        <td>${visit.country || ''}</td>
+        <td>${visit.region || ''}</td>
+        <td>${visit.city || ''}</td>
+        <td class="ip">${maskIP(visit.ip)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Load visits on page load
+  loadVisits();
+</script>
+
+</body>
+</html>

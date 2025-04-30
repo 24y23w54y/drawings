@@ -321,6 +321,22 @@ document.addEventListener('DOMContentLoaded', () => {
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5c3JuenlzZmZ2bHB6eGxjZGJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MDE1MzEsImV4cCI6MjA2MTM3NzUzMX0.H816-ePiMfGqsv4RRU1q1CwoFliRDH1PH8rppufSf7I'
   );
 
+  fetch('https://ipapi.co/json/')
+  .then(res => res.json())
+  .then(async data => {
+    try {
+      await supabaseClient.from('visits').insert([{
+        ip: data.ip,
+        country: data.country_name,
+        region: data.region,
+        city: data.city
+      }]);
+    } catch (error) {
+      console.error('Erreur insertion visite:', error);
+    }
+  })
+  .catch(err => console.error('Erreur API géoloc:', err));
+
   const canvas = document.getElementById('drawingCanvas');
   const ctx = canvas.getContext('2d');
   const colorPicker = document.getElementById('colorPicker');
@@ -526,6 +542,9 @@ function isCanvasBlank(canvas) {
   saveState();
 });
 </script>
+
+
+
 
 </body>
 
