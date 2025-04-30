@@ -1,2 +1,2 @@
 /*
-  Content-Security-Policy: connect-src 'self' https://gysrnzysffvlpzxlcdbz.supabase.co https://ipapi.co;
+  Content-Security-Policy: connect-src 'self' https://gysrnzysffvlpzxlcdbz.supabase.co wss://gysrnzysffvlpzxlcdbz.supabase.co https://ipapi.co;
