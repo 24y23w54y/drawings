@@ -204,24 +204,11 @@ window.addEventListener('beforeunload', () => {
     colorSquare.style.background = currentColor;
   });
 
-  function drawGrid() {
-    ctx.strokeStyle = "#eee";
-    ctx.lineWidth = 1;
-    for (let i = 1; i < gridSize; i++) {
-      ctx.beginPath();
-      ctx.moveTo(i * pixelSize, 0);
-      ctx.lineTo(i * pixelSize, canvas.height);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(0, i * pixelSize);
-      ctx.lineTo(canvas.width, i * pixelSize);
-      ctx.stroke();
-    }
-  }
+ 
 
   function drawAllPixels() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = "#99cfff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     for (const key in pixels) {
