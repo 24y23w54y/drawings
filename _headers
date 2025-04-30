@@ -1,2 +1,4 @@
 /*
   Content-Security-Policy: connect-src 'self' https://gysrnzysffvlpzxlcdbz.supabase.co wss://gysrnzysffvlpzxlcdbz.supabase.co https://ipapi.co;
+/*
+  Cache-Control: no-cache, no-store, must-revalidate;
