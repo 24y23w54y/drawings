@@ -63,7 +63,7 @@
     #colorSquare {
       width: 36px;
       height: 36px;
-      background: #ff0000;
+      background: #000000; /* couleur initiale noire */
       border-radius: 6px;
       border: 2px solid #444;
       cursor: pointer;
@@ -82,7 +82,8 @@
       max-width: 400px;
       display: block;
       margin: 0 auto;
-      touch-action: none;
+      /* touch-action auto pour autoriser zoom tactile */
+      touch-action: auto;
       image-rendering: pixelated;
       aspect-ratio: 1 / 1;
     }
@@ -106,7 +107,7 @@
   <h1 id="pixouTitle">r/pixou</h1>
   <div id="pixouMsg">this feature is temporary, everything will be deleted</div>
   <div id="pixouToolbar">
-    <input type="color" id="pixouColorPicker" value="#ff0000" />
+    <input type="color" id="pixouColorPicker" value="#000000" />
     <label for="pixouColorPicker" id="colorSquare" title="Choose color"></label>
   </div>
   <div id="pixouCanvasContainer">
@@ -116,11 +117,10 @@
 </div>
 <footer></footer>
 <script>
- 
+  // Initialisation Supabase
   const supabaseUrl = 'https://gysrnzysffvlpzxlcdbz.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5c3JuenlzZmZ2bHB6eGxjZGJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MDE1MzEsImV4cCI6MjA2MTM3NzUzMX0.H816-ePiMfGqsv4RRU1q1CwoFliRDH1PH8rppufSf7I';
   const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-
 
   const gridSize = 40;
   const canvasSize = 400;
@@ -128,12 +128,10 @@
   const cooldownSeconds = 10;
   const whiteHex = "#ffffff";
 
-
-  let currentColor = "#ff0000";
+  let currentColor;
   let canPlace = true;
   let cooldownInterval = null;
   let pixels = {}; // { "x,y": "#hex" }
-
 
   const colorPicker = document.getElementById('pixouColorPicker');
   const colorSquare = document.getElementById('colorSquare');
@@ -141,14 +139,16 @@
   const ctx = canvas.getContext('2d');
   const cooldownMsg = document.getElementById('cooldownMsg');
 
+  // Initialise couleur par défaut cohérente
+  currentColor = colorPicker.value;
+  colorSquare.style.background = currentColor;
 
-  colorSquare.style.background = colorPicker.value;
   colorPicker.addEventListener('input', e => {
     currentColor = e.target.value;
     colorSquare.style.background = currentColor;
   });
 
-
+  // Dessine la grille
   function drawGrid() {
     ctx.strokeStyle = "#eee";
     ctx.lineWidth = 1;
@@ -164,7 +164,7 @@
     }
   }
 
-
+  // Dessine tous les pixels stockés
   function drawAllPixels() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#fff";
@@ -182,33 +182,31 @@
         ctx.strokeRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
       }
     }
-
     drawGrid();
   }
 
-
+  // Place un pixel et sauvegarde dans Supabase si besoin
   async function placePixel(x, y, color, fromRealtime = false) {
     const key = `${x},${y}`;
     pixels[key] = color;
     ctx.fillStyle = color;
     ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
 
-  
     if (color.toLowerCase() === whiteHex) {
       ctx.strokeStyle = "#eee";
       ctx.lineWidth = 1;
       ctx.strokeRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
     }
 
-
     if (!fromRealtime) {
+      // Sauvegarde dans Supabase
       await supabase.from('pixou_pixels').upsert([
         { x, y, color }
       ]);
     }
   }
 
-
+  // Gestion du clic sur le canvas
   canvas.addEventListener('click', async e => {
     if (!canPlace) return;
     const rect = canvas.getBoundingClientRect();
@@ -219,7 +217,7 @@
 
     await placePixel(gridX, gridY, currentColor);
 
-
+    // Cooldown 10s
     canPlace = false;
     let remaining = cooldownSeconds;
     cooldownMsg.textContent = `⏳ Please wait ${remaining} seconds before placing another pixel.`;
@@ -236,7 +234,7 @@
     }, 1000);
   });
 
-
+  // Charge tous les pixels depuis Supabase
   async function loadPixels() {
     const { data, error } = await supabase.from('pixou_pixels').select('*');
     if (data) {
@@ -248,7 +246,7 @@
     }
   }
 
-
+  // Écoute les changements en temps réel
   function listenRealtime() {
     supabase.channel('public:pixou_pixels')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pixou_pixels' }, payload => {
@@ -260,13 +258,13 @@
       .subscribe();
   }
 
-
+  // Initialisation
   (async () => {
     await loadPixels();
     listenRealtime();
   })();
 
-
+  // Redessine la grille et pixels au redimensionnement (optionnel)
   window.addEventListener('resize', drawAllPixels);
 </script>
 </body>
