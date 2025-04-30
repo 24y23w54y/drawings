@@ -29,6 +29,7 @@
       flex-direction: column;
       align-items: center;
       width: 100%;
+      margin-top: 60px; /* espace en haut pour top link si besoin */
     }
     #pixouTitle {
       font-size: 2.5rem;
@@ -57,26 +58,25 @@
       gap: 18px;
       width: fit-content;
     }
-    
     #pixouColorPicker {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-  pointer-events: none;
-}
-
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
     #colorSquare {
       width: 36px;
       height: 36px;
-      background: #000000; 
+      background: #000000;
       border-radius: 6px;
       border: 2px solid #444;
       cursor: pointer;
       transition: background 0.2s;
+      display: inline-block;
     }
     #pixouCanvasContainer {
-      margin: 0 auto 30px auto;
+      margin: 0 auto 6px auto;
       width: 100%;
       max-width: 400px;
       position: relative;
@@ -88,10 +88,18 @@
       max-width: 400px;
       display: block;
       margin: 0 auto;
-   
       touch-action: auto;
       image-rendering: pixelated;
       aspect-ratio: 1 / 1;
+    }
+    #currentPlayers {
+      font-size: 0.75rem;
+      color: #ccc;
+      text-align: center;
+      min-height: 18px;
+      margin-bottom: 18px;
+      font-family: monospace;
+      user-select: none;
     }
     #cooldownMsg {
       color: #ffc107;
@@ -109,6 +117,7 @@
   </style>
 </head>
 <body>
+
 <div id="mainContent">
   <h1 id="pixouTitle">r/pixou</h1>
   <div id="pixouMsg">this feature is temporary, everything will be deleted</div>
@@ -118,12 +127,13 @@
   </div>
   <div id="pixouCanvasContainer">
     <canvas id="pixouCanvas" width="400" height="400"></canvas>
+    <div id="currentPlayers"></div>
   </div>
   <div id="cooldownMsg"></div>
 </div>
 <footer></footer>
-<script>
 
+<script>
   const supabaseUrl = 'https://gysrnzysffvlpzxlcdbz.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5c3JuenlzZmZ2bHB6eGxjZGJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MDE1MzEsImV4cCI6MjA2MTM3NzUzMX0.H816-ePiMfGqsv4RRU1q1CwoFliRDH1PH8rppufSf7I';
   const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -144,7 +154,7 @@
   const canvas = document.getElementById('pixouCanvas');
   const ctx = canvas.getContext('2d');
   const cooldownMsg = document.getElementById('cooldownMsg');
-
+  const currentPlayersDiv = document.getElementById('currentPlayers');
 
   currentColor = colorPicker.value;
   colorSquare.style.background = currentColor;
@@ -153,7 +163,6 @@
     currentColor = e.target.value;
     colorSquare.style.background = currentColor;
   });
-
 
   function drawGrid() {
     ctx.strokeStyle = "#eee";
@@ -169,7 +178,6 @@
       ctx.stroke();
     }
   }
-
 
   function drawAllPixels() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -191,7 +199,6 @@
     drawGrid();
   }
 
-  
   async function placePixel(x, y, color, fromRealtime = false) {
     const key = `${x},${y}`;
     pixels[key] = color;
@@ -205,13 +212,11 @@
     }
 
     if (!fromRealtime) {
-
       await supabase.from('pixou_pixels').upsert([
         { x, y, color }
       ]);
     }
   }
-
 
   canvas.addEventListener('click', async e => {
     if (!canPlace) return;
@@ -223,7 +228,6 @@
 
     await placePixel(gridX, gridY, currentColor);
 
-    
     canPlace = false;
     let remaining = cooldownSeconds;
     cooldownMsg.textContent = `⏳ Please wait ${remaining} seconds before placing another pixel.`;
@@ -240,7 +244,6 @@
     }, 1000);
   });
 
-  
   async function loadPixels() {
     const { data, error } = await supabase.from('pixou_pixels').select('*');
     if (data) {
@@ -252,7 +255,57 @@
     }
   }
 
-  
+  // --- Présence en temps réel ---
+
+  // Génère un ID utilisateur unique temporaire
+  function generateUserId() {
+    return 'user_' + Math.random().toString(36).substr(2, 9);
+  }
+
+  const userId = generateUserId();
+  let currentPlayersSet = new Set();
+
+  const presenceChannel = supabase.channel('presence-channel');
+
+  function updatePlayersCount() {
+    const count = currentPlayersSet.size;
+    if (count >= 2) {
+      currentPlayersDiv.textContent = `current players: ${count}`;
+    } else {
+      currentPlayersDiv.textContent = '';
+    }
+  }
+
+  presenceChannel
+    .on('broadcast', { event: 'join' }, payload => {
+      currentPlayersSet.add(payload.userId);
+      updatePlayersCount();
+    })
+    .on('broadcast', { event: 'leave' }, payload => {
+      currentPlayersSet.delete(payload.userId);
+      updatePlayersCount();
+    })
+    .subscribe()
+    .then(() => {
+      presenceChannel.send({
+        type: 'broadcast',
+        event: 'join',
+        payload: { userId }
+      });
+      currentPlayersSet.add(userId);
+      updatePlayersCount();
+    });
+
+  window.addEventListener('beforeunload', () => {
+    presenceChannel.send({
+      type: 'broadcast',
+      event: 'leave',
+      payload: { userId }
+    });
+  });
+
+  // --- Fin présence ---
+
   function listenRealtime() {
     supabase.channel('public:pixou_pixels')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pixou_pixels' }, payload => {
@@ -264,13 +317,11 @@
       .subscribe();
   }
 
-  
   (async () => {
     await loadPixels();
     listenRealtime();
   })();
 
-  
   window.addEventListener('resize', drawAllPixels);
 </script>
 </body>
