@@ -40,7 +40,9 @@ html, body {
     justify-content: center;
     position: relative;
   }
+
   #mainContent {
+      margin-top: 60px !important;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -273,11 +275,62 @@ html, body {
   }
 }
 
+#pixouTopLink {
+  width: 100vw;
+  text-align: center;
+  margin: 18px 0 0 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  padding-top: 8px; 
+  padding-bottom: 12px;
+}
+#pixouTopLink a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: #fff;
+  font-size: 1.1rem;
+  background: rgba(44,44,44,0.93);
+  padding: 4px 16px 4px 10px;
+  border-radius: 18px;
+  box-shadow: 0 2px 8px #0002;
+  transition: background 0.2s, transform 0.2s;
+}
+#pixouTopLink a:hover {
+  background: #333;
+  transform: scale(1.07);
+}
+.earth-icon {
+  font-size: 1.2em; 
+}
+.toplink-text {
+  font-size: 1em;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+@media (max-width: 600px) {
+  #pixouTopLink a {
+    font-size: 0.95rem;
+    padding: 3px 10px 3px 7px;
+  }
+  .earth-icon { font-size: 1em; }
+}
 
   
 </style>
 </head>
 <body>
+
+  <div id="pixouTopLink">
+    <a href="rpixou.html" aria-label="Go to r/pixou" title="Go to r/pixou">
+      <span class="earth-icon" role="img" aria-label="Earth">🌍</span>
+      <span class="toplink-text">try r/pixou</span>
+    </a>
+  </div>
+
 
 <div id="mainContent">
   <div id="toolbar">
@@ -301,13 +354,6 @@ html, body {
   </p>
   <br>
   <button id="sendBtn">Send</button>
-
-  <section id="earthIconSection" style="width: 100%; max-width: 480px; margin: 20px auto; text-align: center; font-size: 48px; cursor: pointer;">
-    <a href="rpixou.html" aria-label="Go to r/pixou page" title="Go to r/pixou page" style="text-decoration: none; color: inherit;">
-      🌍
-    </a>
-  </section>
-  
 
   <hr class="section-separator">
 
