@@ -58,13 +58,12 @@
       width: fit-content;
     }
     #pixouColorPicker {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-  pointer-events: none;
-}
-
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
     #colorSquare {
       width: 36px;
       height: 36px;
@@ -87,7 +86,6 @@
       max-width: 400px;
       display: block;
       margin: 0 auto;
-   
       touch-action: auto;
       image-rendering: pixelated;
       aspect-ratio: 1 / 1;
@@ -122,7 +120,6 @@
 </div>
 <footer></footer>
 <script>
-
   const supabaseUrl = 'https://gysrnzysffvlpzxlcdbz.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5c3JuenlzZmZ2bHB6eGxjZGJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MDE1MzEsImV4cCI6MjA2MTM3NzUzMX0.H816-ePiMfGqsv4RRU1q1CwoFliRDH1PH8rppufSf7I';
   const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -144,7 +141,6 @@
   const ctx = canvas.getContext('2d');
   const cooldownMsg = document.getElementById('cooldownMsg');
 
-
   currentColor = colorPicker.value;
   colorSquare.style.background = currentColor;
 
@@ -152,7 +148,6 @@
     currentColor = e.target.value;
     colorSquare.style.background = currentColor;
   });
-
 
   function drawGrid() {
     ctx.strokeStyle = "#eee";
@@ -168,7 +163,6 @@
       ctx.stroke();
     }
   }
-
 
   function drawAllPixels() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -190,7 +184,7 @@
     drawGrid();
   }
 
-  
+  // Fonction qui place ou remplace un pixel
   async function placePixel(x, y, color, fromRealtime = false) {
     const key = `${x},${y}`;
     pixels[key] = color;
@@ -204,13 +198,15 @@
     }
 
     if (!fromRealtime) {
-
-      await supabase.from('pixou_pixels').upsert([
-        { x, y, color }
-      ]);
+      // Remplace le pixel si déjà existant (nécessite contrainte UNIQUE (x, y) dans la table)
+      await supabase
+        .from('pixou_pixels')
+        .upsert(
+          [{ x, y, color }],
+          { onConflict: ['x', 'y'] }
+        );
     }
   }
-
 
   canvas.addEventListener('click', async e => {
     if (!canPlace) return;
@@ -222,7 +218,6 @@
 
     await placePixel(gridX, gridY, currentColor);
 
-    
     canPlace = false;
     let remaining = cooldownSeconds;
     cooldownMsg.textContent = `⏳ Please wait ${remaining} seconds before placing another pixel.`;
@@ -239,7 +234,6 @@
     }, 1000);
   });
 
-  
   async function loadPixels() {
     const { data, error } = await supabase.from('pixou_pixels').select('*');
     if (data) {
@@ -251,7 +245,6 @@
     }
   }
 
-  
   function listenRealtime() {
     supabase.channel('public:pixou_pixels')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pixou_pixels' }, payload => {
@@ -263,13 +256,11 @@
       .subscribe();
   }
 
-  
   (async () => {
     await loadPixels();
     listenRealtime();
   })();
 
-  
   window.addEventListener('resize', drawAllPixels);
 </script>
 </body>
