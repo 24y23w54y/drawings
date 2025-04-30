@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>r/pixou</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --background-color: #1e1e1e;
+      --toolbar-background: #2c2c2c;
+      --button-background: #fff;
+      --button-text: #000;
+      --active-color: #ffc107;
+    }
+    body {
+      margin: 0;
+      background: var(--background-color);
+      font-family: Arial, sans-serif;
+      min-height: 100vh;
+      width: 100vw;
+      color: var(--button-background);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #mainContent {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+    #pixouTitle {
+      font-size: 2.5rem;
+      font-weight: bold;
+      margin-top: 36px;
+      margin-bottom: 0;
+      letter-spacing: 2px;
+      color: var(--button-background);
+      text-align: center;
+    }
+    #pixouMsg {
+      font-size: 1rem;
+      color: #aaa;
+      margin-bottom: 24px;
+      text-align: center;
+      margin-top: 8px;
+    }
+    #pixouToolbar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: var(--toolbar-background);
+      padding: 10px 18px;
+      border-radius: 10px;
+      margin-bottom: 18px;
+      gap: 18px;
+      width: fit-content;
+    }
+    #pixouColorPicker {
+      display: none;
+    }
+    #colorSquare {
+      width: 36px;
+      height: 36px;
+      background: #ff0000;
+      border-radius: 6px;
+      border: 2px solid #444;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #pixouCanvasContainer {
+      margin: 0 auto 30px auto;
+      width: 100%;
+      max-width: 400px;
+      position: relative;
+    }
+    #pixouCanvas {
+      background: #fff;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 400px;
+      display: block;
+      margin: 0 auto;
+      touch-action: none;
+      image-rendering: pixelated;
+      aspect-ratio: 1 / 1;
+    }
+    #cooldownMsg {
+      color: #ffc107;
+      font-size: 1.1rem;
+      text-align: center;
+      margin-top: 18px;
+      min-height: 24px;
+      letter-spacing: 1px;
+      opacity: 0.85;
+    }
+    footer {
+      height: 80px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+<div id="mainContent">
+  <h1 id="pixouTitle">r/pixou</h1>
+  <div id="pixouMsg">this feature is temporary, everything will be deleted</div>
+  <div id="pixouToolbar">
+    <input type="color" id="pixouColorPicker" value="#ff0000" />
+    <label for="pixouColorPicker" id="colorSquare" title="Choose color"></label>
+  </div>
+  <div id="pixouCanvasContainer">
+    <canvas id="pixouCanvas" width="400" height="400"></canvas>
+  </div>
+  <div id="cooldownMsg"></div>
+</div>
+<footer></footer>
+<script>
+ 
+  const supabaseUrl = 'https://gysrnzysffvlpzxlcdbz.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5c3JuenlzZmZ2bHB6eGxjZGJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MDE1MzEsImV4cCI6MjA2MTM3NzUzMX0.H816-ePiMfGqsv4RRU1q1CwoFliRDH1PH8rppufSf7I';
+  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+
+  const gridSize = 40;
+  const canvasSize = 400;
+  const pixelSize = canvasSize / gridSize;
+  const cooldownSeconds = 10;
+  const whiteHex = "#ffffff";
+
+
+  let currentColor = "#ff0000";
+  let canPlace = true;
+  let cooldownInterval = null;
+  let pixels = {}; // { "x,y": "#hex" }
+
+
+  const colorPicker = document.getElementById('pixouColorPicker');
+  const colorSquare = document.getElementById('colorSquare');
+  const canvas = document.getElementById('pixouCanvas');
+  const ctx = canvas.getContext('2d');
+  const cooldownMsg = document.getElementById('cooldownMsg');
+
+
+  colorSquare.style.background = colorPicker.value;
+  colorPicker.addEventListener('input', e => {
+    currentColor = e.target.value;
+    colorSquare.style.background = currentColor;
+  });
+
+
+  function drawGrid() {
+    ctx.strokeStyle = "#eee";
+    ctx.lineWidth = 1;
+    for (let i = 1; i < gridSize; i++) {
+      ctx.beginPath();
+      ctx.moveTo(i * pixelSize, 0);
+      ctx.lineTo(i * pixelSize, canvas.height);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, i * pixelSize);
+      ctx.lineTo(canvas.width, i * pixelSize);
+      ctx.stroke();
+    }
+  }
+
+
+  function drawAllPixels() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for (const key in pixels) {
+      const [x, y] = key.split(',').map(Number);
+      const color = pixels[key];
+      ctx.fillStyle = color;
+      ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+
+      if (color.toLowerCase() === whiteHex) {
+        ctx.strokeStyle = "#eee";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+      }
+    }
+
+    drawGrid();
+  }
+
+
+  async function placePixel(x, y, color, fromRealtime = false) {
+    const key = `${x},${y}`;
+    pixels[key] = color;
+    ctx.fillStyle = color;
+    ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+
+  
+    if (color.toLowerCase() === whiteHex) {
+      ctx.strokeStyle = "#eee";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+    }
+
+
+    if (!fromRealtime) {
+      await supabase.from('pixou_pixels').upsert([
+        { x, y, color }
+      ]);
+    }
+  }
+
+
+  canvas.addEventListener('click', async e => {
+    if (!canPlace) return;
+    const rect = canvas.getBoundingClientRect();
+    const clickX = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const clickY = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const gridX = Math.floor(clickX / pixelSize);
+    const gridY = Math.floor(clickY / pixelSize);
+
+    await placePixel(gridX, gridY, currentColor);
+
+
+    canPlace = false;
+    let remaining = cooldownSeconds;
+    cooldownMsg.textContent = `⏳ Please wait ${remaining} seconds before placing another pixel.`;
+
+    cooldownInterval = setInterval(() => {
+      remaining--;
+      if (remaining > 0) {
+        cooldownMsg.textContent = `⏳ Please wait ${remaining} seconds before placing another pixel.`;
+      } else {
+        clearInterval(cooldownInterval);
+        cooldownMsg.textContent = "";
+        canPlace = true;
+      }
+    }, 1000);
+  });
+
+
+  async function loadPixels() {
+    const { data, error } = await supabase.from('pixou_pixels').select('*');
+    if (data) {
+      pixels = {};
+      for (const px of data) {
+        pixels[`${px.x},${px.y}`] = px.color;
+      }
+      drawAllPixels();
+    }
+  }
+
+
+  function listenRealtime() {
+    supabase.channel('public:pixou_pixels')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pixou_pixels' }, payload => {
+        const px = payload.new;
+        if (px) {
+          placePixel(px.x, px.y, px.color, true);
+        }
+      })
+      .subscribe();
+  }
+
+
+  (async () => {
+    await loadPixels();
+    listenRealtime();
+  })();
+
+
+  window.addEventListener('resize', drawAllPixels);
+</script>
+</body>
+</html>
