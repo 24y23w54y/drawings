@@ -226,7 +226,7 @@ window.addEventListener('beforeunload', () => {
     drawGrid();
   }
 
-  // Fonction qui place ou remplace un pixel
+ 
   async function placePixel(x, y, color, fromRealtime = false) {
     const key = `${x},${y}`;
     pixels[key] = color;
@@ -240,7 +240,7 @@ window.addEventListener('beforeunload', () => {
     }
 
     if (!fromRealtime) {
-      // Remplace le pixel si déjà existant (nécessite contrainte UNIQUE (x, y) dans la table)
+      
       await supabase
         .from('pixou_pixels')
         .upsert(
