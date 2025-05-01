@@ -90,43 +90,6 @@
       image-rendering: pixelated;
       aspect-ratio: 1 / 1;
     }
-    #currentPlayersContainer {
-      width: 100%;
-      max-width: 400px;
-      margin: 0 auto 20px auto;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    #currentPlayers {
-      font-size: 0.8rem;
-      color: #ccc;
-      text-align: left;
-      display: block;
-      margin-top: 8px;
-      user-select: none;
-    }
-    #refreshPresence {
-      background: none;
-      border: none;
-      padding: 0;
-      margin-top: 8px;
-      cursor: pointer;
-      outline: none;
-      display: flex;
-      align-items: center;
-      height: 24px;
-    }
-    #refreshPresence img {
-      height: 20px;
-      width: 20px;
-      display: block;
-      filter: grayscale(1) brightness(2);
-      transition: filter 0.2s;
-    }
-    #refreshPresence:hover img {
-      filter: none;
-    }
     #cooldownMsg {
       color: #ffc107;
       font-size: 1.1rem;
@@ -145,19 +108,13 @@
 <body>
 <div id="mainContent">
   <h1 id="pixouTitle">r/pixou</h1>
-  <div id="pixouMsg">this feature is temporary, everything will be deleted</div>
+  <div id="pixouMsg">no rules, do whatever you want!</div>
   <div id="pixouToolbar">
     <input type="color" id="pixouColorPicker" value="#000000" />
     <label for="pixouColorPicker" id="colorSquare" title="Choose color"></label>
   </div>
   <div id="pixouCanvasContainer">
     <canvas id="pixouCanvas" width="400" height="400"></canvas>
-  </div>
-  <div id="currentPlayersContainer">
-    <span id="currentPlayers"></span>
-    <button id="refreshPresence" title="Rafraîchir le nombre de joueurs">
-      <img src="assets/icons-undo-64.png" alt="Refresh" />
-    </button>
   </div>
   <div id="cooldownMsg"></div>
 </div>
@@ -166,55 +123,6 @@
   const supabaseUrl = 'https://gysrnzysffvlpzxlcdbz.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5c3JuenlzZmZ2bHB6eGxjZGJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MDE1MzEsImV4cCI6MjA2MTM3NzUzMX0.H816-ePiMfGqsv4RRU1q1CwoFliRDH1PH8rppufSf7I';
   const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-  const currentPlayersDiv = document.getElementById('currentPlayers');
-  const refreshBtn = document.getElementById('refreshPresence');
-  const userId = 'user_' + Math.random().toString(36).substring(2, 10);
-
-  let onlineUsers = new Set();
-
-  const presenceChannel = supabase.channel('presence-channel', {
-    config: {
-      presence: {
-        key: userId,
-      }
-    }
-  });
-
-  presenceChannel.on('presence', { event: 'sync' }, () => {
-    const state = presenceChannel.presenceState();
-    onlineUsers = new Set(Object.keys(state));
-    updatePlayerCount();
-  });
-
-  presenceChannel.on('presence', { event: 'join' }, ({ key }) => {
-    onlineUsers.add(key);
-    updatePlayerCount();
-  });
-
-  presenceChannel.on('presence', { event: 'leave' }, ({ key }) => {
-    onlineUsers.delete(key);
-    updatePlayerCount();
-  });
-
-  (async () => {
-    const { status } = await presenceChannel.subscribe();
-    if (status === "SUBSCRIBED") {
-      updatePlayerCount();
-    }
-  })();
-
-  // Bouton refresh : force la lecture de l'état de présence
-  refreshBtn.onclick = () => {
-    const state = presenceChannel.presenceState();
-    onlineUsers = new Set(Object.keys(state));
-    updatePlayerCount();
-  };
-
-  function updatePlayerCount() {
-    const count = onlineUsers.size;
-    currentPlayersDiv.textContent = `players online: ${count}`;
-  }
 
   const gridSize = 40;
   const canvasSize = 400;
@@ -294,12 +202,12 @@
 
     canPlace = false;
     let remaining = cooldownSeconds;
-    cooldownMsg.textContent = `⏳ Please wait ${remaining} seconds before placing another pixel.`;
+    cooldownMsg.textContent = `⏳ Please wait ${remaining} second before placing another pixel.`;
 
     cooldownInterval = setInterval(() => {
       remaining--;
       if (remaining > 0) {
-        cooldownMsg.textContent = `⏳ Please wait ${remaining} seconds before placing another pixel.`;
+        cooldownMsg.textContent = `⏳ Please wait ${remaining} second before placing another pixel.`;
       } else {
         clearInterval(cooldownInterval);
         cooldownMsg.textContent = "";
